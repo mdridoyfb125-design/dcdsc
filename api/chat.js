@@ -1,26 +1,34 @@
 import OpenAI from "openai";
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
 export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
     const { message } = req.body;
 
-    const completion = await client.chat.completions.create({
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    });
+
+    const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are IdealBot, a funny and sarcastic bot for Ideal College." },
+        { role: "system", content: "You are IdealBot. You reply in Bangla with funny sarcastic style about Ideal College." },
         { role: "user", content: message }
       ]
     });
 
-    const reply = completion.choices?.[0]?.message?.content || "No response from model.";
+    const reply = completion.choices?.[0]?.message?.content;
 
-    res.status(200).json({ reply });
+    if (!reply) {
+      return res.status(500).json({ reply: "Model returned empty response" });
+    }
 
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(200).json({ reply });
+
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 }
